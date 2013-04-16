@@ -14,6 +14,8 @@
 ;;     semitone is step of 1, tone is 2
 ;; - as keywords :C, :C# etc.
 
+(def domain (fd/interval 20))
+
 (def major [2 2 1 2 2 2 1])
 
 (def twinkle [0 0 4 4 5 5 4 3 3 2 2 1 1 0])
@@ -32,9 +34,9 @@
 
 (defn modo [a b remainder]
   (l/fresh [x y]
-    (fd/in x y (fd/interval 0 100)) ;; replace with
+    (fd/in x y domain)
     (fd/eq (= a (+ (* b x) remainder))
-           (< remainder x))))
+           (< remainder b))))
 
 (defn sublisto [subl superl]
   "subl is a sublist of superl"

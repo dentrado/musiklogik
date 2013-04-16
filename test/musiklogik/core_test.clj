@@ -9,4 +9,8 @@
     (is (= [1]
            (l/run* [q]
              (fd/in q (fd/interval 0 10))
-             (modo 5 2 q))))))
+             (modo 5 2 q))))
+    (is (= [3]
+           (l/run* [q]
+             (fd/in q (fd/interval 0 10))
+             (modo 3 12 q))))))
