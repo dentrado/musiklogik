@@ -59,11 +59,46 @@
             a b c)
     (l/== q [a b c])))
 
-(clojure.lang.Box. 1)
+;; All intervals series inspired by strasheela:
 
+(defn inversional-eq-intervalo [p1 p2 interval]
+  (l/fresh [x]
+    (fd/in x domain)
+    (fd/eq (= x (+ (- p2 p1) 12))) ; +12 to make sure it's positive
+    (modo x 12 interval))
+;  (fd/- p2 p1 interval)
+  )
+
+(defn all-interval-serieso [pitches intervals]
+  (l/all
+   (l/everyg (fn [[[p1 p2] i]]
+               (inversional-eq-intervalo p1 p2 i))
+             (map vector
+                  (partition 2 1 pitches)
+                  intervals))
+   (l/distincto pitches)
+   (l/distincto intervals)))
+
+(let [pitches   (l/lvars 3)
+      intervals (l/lvars (dec 3))]
+  (l/run 30 [q]
+    (l/== q [pitches intervals])
+    (l/everyg #(fd/in % (fd/interval 0 16)) pitches)
+    (l/everyg #(fd/in % (fd/interval 0 16)) intervals)
+    (all-interval-serieso pitches intervals)
+    ))
+
+(l/run 10 [q]
+  (l/fresh [a b c d]
+    (fd/in a b c d domain)
+    (fd/eq (= c (+ (- a b) 12)))
+    (modo a b c)
+    (l/== q [a b c])
+                                        ;  (l/== q [a b c d])
+    ))
 
 (comment
-  from wikipedia:
+  from wikipedia
   :perfect V I in major, V i in minor
   :plagal IV I
   :interrupted V to any other, often V7 vi in major or V7 VI in minor
