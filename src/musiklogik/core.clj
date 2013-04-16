@@ -14,7 +14,8 @@
 ;;     semitone is step of 1, tone is 2
 ;; - as keywords :C, :C# etc.
 
-(def domain (fd/interval 20))
+(def domain (fd/interval 24))
+;(def domain (fd/domain 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24))
 
 (def major [2 2 1 2 2 2 1])
 
@@ -71,13 +72,13 @@
 
 (defn all-interval-serieso [pitches intervals]
   (l/all
+   (fd/distinct pitches)
+   (fd/distinct intervals)
    (l/everyg (fn [[[p1 p2] i]]
                (inversional-eq-intervalo p1 p2 i))
              (map vector
                   (partition 2 1 pitches)
-                  intervals))
-   (l/distincto pitches)
-   (l/distincto intervals)))
+                  intervals))))
 
 (let [pitches   (l/lvars 3)
       intervals (l/lvars (dec 3))]
