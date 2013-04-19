@@ -39,9 +39,7 @@
 (def domain (fd/interval 24))
 ;(def domain (fd/domain 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24))
 
-(def major [2 2 1 2 2 2 1])
-
-(def twinkle [0 0 4 4 5 5 4 3 3 2 2 1 1 0])
+;(def major [2 2 1 2 2 2 1])
 
 ;; notes as map?
 (def C4  { :note 0 :octave 4 }) ; (octave + 1) * 12 -> 60 midinote
@@ -97,23 +95,101 @@
                   (partition 2 1 pitches)
                   intervals))))
 
-(let [pitches   (l/lvars 3)
-      intervals (l/lvars (dec 3))]
-  (l/run 30 [q]
-    (l/== q [pitches intervals])
-    (l/everyg #(fd/in % (fd/interval 0 16)) pitches)
-    (l/everyg #(fd/in % (fd/interval 0 16)) intervals)
-    (all-interval-serieso pitches intervals)
-    ))
+(defn play-equal [pitches]
+  (let [speed (bpm 120)]
+    (->> (phrase (repeat 1) pitches)
+         (where :part (is :leader))
+         (where :time speed)
+         (where :duration speed)
+         (where :pitch (comp C major))
+         (play))))
 
-(l/run 10 [q]
-  (l/fresh [a b c d]
-    (fd/in a b c d domain)
-    (fd/eq (= c (+ (- a b) 12)))
-    (modo a b c)
-    (l/== q [a b c])
-                                        ;  (l/== q [a b c d])
-    ))
+(def all-intervals-series (let [len 12
+                                pitches   (l/lvars len)
+                                intervals (l/lvars (dec len))]
+                            (l/run 2 [q]
+                              (l/== q [pitches intervals])
+                              (l/everyg #(fd/in % (fd/interval 12)) pitches)
+                              (l/everyg #(fd/in % (fd/interval 12)) intervals)
+                              (all-interval-serieso pitches intervals))))
+
+(def twinkle [0 0 4 4 5 5 4 4 3 3 2 2 1 1 0 0])
+
+(def fandbs
+  (let [speed (bpm 120)
+        len 16
+        follower (l/lvars len)
+        bass     (l/lvars len)
+        [[f b] :as all] (l/run 2 [q]
+                          (l/== q [follower bass])
+                          (l/everyg #(fd/in % (fd/interval 12)) follower)
+                          (l/everyg #(fd/in % (fd/interval 12)) bass)
+                          (l/everyg (fn [[r t f]]
+                                      (l/conde
+                                        [(triado (range 12) r t f)]))
+                                    (map vector twinkle follower bass)))
+        leader   (->> (phrase (repeat 1) twinkle)
+                      (where :part (is :leader)))
+        follower (->> (phrase (repeat 1) f)
+                      (where :part (is :follower)))
+        bass     (->> (phrase (repeat 1) b)
+                      (where :part (is :bass)))]
+    (->> leader
+         (with follower)
+         (with bass)
+         (where :time speed)
+         (where :duration speed)
+         (where :pitch (comp C major))
+         (play))
+    all))
+
+(defn aux-toneo "t2 is an auxillary tone"
+  [t1 t2 t3] ; auxillary tone, also called neighbouring tone
+  (l/all (fd/== t1 t3)
+         (l/conde
+           [(fd/eq (= (- t1 t2) 1))]
+           [(fd/eq (= (- t2 t1) 1))])))
+
+(defn passing-toneo "t2 is a passing tone"
+  [t1 t2 t3]
+  (l/conde
+    [(fd/eq (= (- t3 t2) 1)             ; (< t1 t3)
+            (= (- t3 t1) 2))]
+    [(fd/eq (= (- t1 t2) 1)             ; (> t1 t3)
+            (= (- t1 t3) 2))]))
+
+;;;; Tests
+(def chordtest
+  (let [speed (bpm 120)
+        [[f b] :as all] (l/run 2 [q]
+                          (fresh [c1 c2 c3 c4  ]
+                            (l/== q [c1 c2 c3 c4])
+                            (fd/in c1 c2 c3 c4 (fd/interval 12))
+                            (fd/== c1 c4) ; the first and last chord should be the same
+                            ; a note should either be in the chord, or a passing note
+                            (l/everyg (fn [[r t f]]
+                                        (l/conde
+                                          [(triado (range 12) r t f)]))
+                                      (map vector twinkle follower bass))))
+        leader   (->> (phrase (repeat 1) twinkle)
+                      (where :part (is :leader)))
+        follower (->> (phrase (repeat 1) f)
+                      (where :part (is :follower)))
+        bass     (->> (phrase (repeat 1) b)
+                      (where :part (is :bass)))]
+    (->> leader
+         (with follower)
+         (with bass)
+         (where :time speed)
+         (where :duration speed)
+         (where :pitch (comp C major))
+         (play))
+    all))
+
+(comment
+  (print fandbs)
+  (play-equal (first (second all-intervals-series)))
+  (overtone/stop))
 
 (comment
   from wikipedia
@@ -121,3 +197,16 @@
   :plagal IV I
   :interrupted V to any other, often V7 vi in major or V7 VI in minor
   :imperfect long explanation..)
+
+(l/run 30 [q]
+  (l/fresh [a b c]
+    (triado (intervals->scale 1 [2 2 1 2 2 2 1])
+            a b c)
+    (l/== q [a b c])))
+
+(l/run 30 [q]
+  (l/fresh [a b c]
+    (fd/in a b c domain)
+;    (passing-toneo a b c)
+    (aux-toneo a b c)
+    (l/== q [a b c])))
