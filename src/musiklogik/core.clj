@@ -51,8 +51,8 @@
 
 (defn toneo [a b] (fd/- b a 2))
 
-(defn multipleo [a b]
-  "a is a multiple of b"
+(defn multipleo "a is a multiple of b"
+  [a b]
   (l/fresh [x] (fd/* b x a)))
 
 (defn modo [a b remainder]
@@ -61,8 +61,8 @@
     (fd/eq (= a (+ (* b x) remainder))
            (< remainder b))))
 
-(defn sublisto [subl superl]
-  "subl is a sublist of superl"
+(defn sublisto "subl is a sublist of superl"
+  [subl superl]
   (l/fresh [x y z]
     (l/appendo y z superl) ; don't
     (l/appendo x subl y))) ; reorder
@@ -72,15 +72,10 @@
     (sublisto [root second third fourth fifth]
               scale)))
 
-(defn intervals->scale [tonic intervals]
+(defn intervals->scale
   "returns a scale one longer than the nr of intervals"
+  [tonic intervals]
   (reductions + tonic intervals))
-
-(l/run 30 [q]
-  (l/fresh [a b c]
-    (triado (intervals->scale 1 major)
-            a b c)
-    (l/== q [a b c])))
 
 ;; All intervals series inspired by strasheela:
 
