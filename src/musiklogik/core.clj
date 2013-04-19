@@ -1,7 +1,29 @@
 (ns musiklogik.core
-  (:use [overtone.live])
+  (:use leipzig.melody
+        leipzig.scale
+        leipzig.canon
+        leipzig.live)
   (:require [clojure.core.logic :as l]
-            [clojure.core.logic.fd :as fd]))
+            [clojure.core.logic.fd :as fd]
+            [overtone.live :as overtone]
+            [overtone.synth.stringed :as strings]))
+
+;; Leipzig example copypasta
+(strings/gen-stringed-synth ektara 1 true)
+
+(defn pick [distort amp {midi :pitch, start :time, length :duration}]
+    (let [synth-id (overtone/at start
+                     (ektara midi :distort distort :amp amp :gate 1))]
+      (overtone/at (+ start length) (overtone/ctl synth-id :gate 0))))
+
+(defmethod play-note :leader [note]
+  (pick 0.7 1.0 note))
+(defmethod play-note :follower [note]
+  (pick 0.3 1.0 note))
+(defmethod play-note :bass [note]
+  (pick 0.9 0.2 (update-in note [:pitch] #(- % 12))))
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;; TODO
 ;; semitone, tone
 ;; diatonic scales: minor, major
