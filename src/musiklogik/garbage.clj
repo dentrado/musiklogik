@@ -24,6 +24,21 @@
      (= count 4) (recur rest dur           [tone]          (conj bars bar))
      :else       (recur rest (+ count dur) (conj bar tone) bars))))
 
+;;; Triplets
+;; the melody is padded with one extra note before and after to get the triplets right.
+
+(defn triplet-bars
+  "Returns the phrase divided up in bars. Each bar is 4 in duration."
+  [triplet-phrase]
+  (loop [[[_ [dur pitch :as tone] _ :as triplet] & rest] triplet-phrase
+         count 0
+         bar []
+         bars []]
+    (cond
+     (not tone)  (conj bars bar)
+     (= count 4) (recur rest dur           [triplet]          (conj bars bar))
+     :else       (recur rest (+ count dur) (conj bar triplet) bars))))
+
 (defn aux-toneo "t2 is an auxillary tone"
   [t1 t2 t3] ; auxillary tone, also called neighbouring tone
   (l/all (fd/== t1 t3)
@@ -90,17 +105,36 @@
     all))
 
 ;; old
-(defn triplet-bars
-  "Returns the phrase divided up in bars. Each bar is 4 in duration."
-  [triplet-phrase]
-  (loop [[[_ [dur pitch :as tone] _ :as triplet] & rest] triplet-phrase
-         count 0
-         bar []
-         bars []]
-    (cond
-     (not tone)  (conj bars bar)
-     (= count 4) (recur rest dur           [triplet]          (conj bars bar))
-     :else       (recur rest (+ count dur) (conj bar triplet) bars))))
+
+(defn intervalo [num note1 note2]
+  (l/fresh [p1 p2]
+    (fd/in p1 p2 domain)
+    (l/featurec note1 {:pitch p1})
+    (l/featurec note2 {:pitch p2})
+    (fd/- p2 p1 num)))
+
+(def unisono (partial intervalo 0))
+(def secondo (partial intervalo 1))
+(def thirdo  (partial intervalo 2))
+(def fourtho (partial intervalo 3))
+(def fiftho  (partial intervalo 4))
+
+(defn aux-noteo
+  [note] ; auxillary note, also called neighbouring note
+  (fresh [prev next]
+    (featurec note {:prev prev :next next})
+    (== prev next) ; prev and next are maps, we can't use fd/==.
+    (conde
+      [(secondo prev note)]    ; (< prev next)
+      [(secondo note prev)])))
+
+(defn passing-noteo "t2 is a passing tone"
+  [note]
+  (fresh [prev next]
+   (featurec note {:prev prev :next next})
+   (conde
+     [(secondo prev note) (secondo note next)]    ; (< prev next)
+     [(secondo next note) (secondo note prev)]))) ; (> prev next)
 
 ;;;; Tests
 (comment
