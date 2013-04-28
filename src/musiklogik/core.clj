@@ -91,12 +91,6 @@
      (assoc b :prev a :next c))))
 
 ;; Pitch constraints
-(defn modo [a b remainder]
-  (fresh [x y]
-    (fd/in a b remainder x y domain)
-    (fd/eq (= a (+ (* b x) remainder))
-           (< remainder b))))
-
 (defn normalizeo "normalize a pitch to be between 0-7"
   [p p-normalized]
   (fd/in p domain)
