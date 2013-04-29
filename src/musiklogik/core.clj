@@ -68,6 +68,19 @@
                [1 1 1 1, 1 1 2, 1 1 1 1, 1 1 2]
                [0 0 4 4, 5 5 4, 3 3 2 2, 1 1 0]))
 
+;; Utils
+(def zip (partial map vector))
+
+(defn unzip
+  "takes a seq of pairs and returns (a vector of) two vectors (not lazy)."
+  [pairs]
+  (reduce (fn [[xs ys] [x y]]
+            [(conj xs x) (conj ys y)])
+          [[] []]
+          pairs))
+
+(defn transpose [matrix]
+  (apply map vector matrix))
 ;; Preprocessing functions
 (defn bars
   "Returns the phrase divided up in bars. Each bar is 4 in duration."
@@ -188,8 +201,6 @@
 
 
 
-(defn transpose [matrix]
-  (apply map vector matrix))
 
 
 (comment (let []
