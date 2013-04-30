@@ -31,8 +31,7 @@
 
 (defmethod play-note :leader [note]
   (piano note))
-(defmethod play-note :follower [note]
-  (piano note))
+
 (defmethod play-note :bass [note]
   (piano  (update-in note [:pitch] #(- % 12))))
 
@@ -44,22 +43,6 @@
          (where :duration speed)
          (where :pitch (comp C major))
          (play))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; TODO
-;; semitone, tone
-;; diatonic scales: minor, major
-;; chords (triads) (always with root as base to simplify?)
-;; tonic, dominant, subdominant: I V IV
-;; cadences
-
-;; representation choices
-;; - notes as (MIDI?)numbers
-;;     semitone is step of 1, tone is 2
-;; - as keywords :C, :C# etc.
-
-(def domain (fd/interval 14)) ; Could be smaller?
 
 ;; Utils
 (def zip (partial map vector))
@@ -98,6 +81,8 @@
      (assoc b :prev a :next c))))
 
 ;; Pitch constraints
+(def domain (fd/interval 14)) ; Could be smaller?
+
 (defn normalizeo "normalize a pitch to be between 0-7"
   [p p-normalized]
   (fd/in p domain)
@@ -109,10 +94,8 @@
 (defn intervalo [num pitch1 pitch2]
   (fresh [p1norm p2norm]
     (fd/in num pitch1 pitch2 p1norm p2norm domain)
-    ;(fd/- pitch2 pitch1 num)
     (normalizeo pitch1 p1norm)
     (normalizeo pitch2 p2norm)
-    ;(fd/- p2norm p1norm num)
     (conde
         [(fd/- p2norm p1norm num)]
         [(fd/eq (= (- (+ 7 p2norm) p1norm) num))] ; octave wraparound
@@ -125,8 +108,8 @@
 (def fiftho  (partial intervalo 4))
 
 ;; Note constraints
-(defn aux-noteo
-  [note] ; auxillary note, also called neighbouring note
+(defn aux-noteo "note is an auxillary note, also called neighbouring note"
+  [note]
   (fresh [p1 p2]
     (fd/in p1 p2 domain)
     (featurec note {:prev {:pitch p2}, :pitch p1, :next {:pitch p2}})
