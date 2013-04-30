@@ -61,13 +61,6 @@
 
 (def domain (fd/interval 14)) ; Could be smaller?
 
-(def horch   (phrase
-              [1 1 1 1, 1 1 2, 1 1 2, 1 1 2]
-              [0 1 2 3, 4 5 4, 3 1 6, 4 2 7])) ; `Horch was kommt von draussen rein' from strasheela example
-(def twinkle (phrase
-               [1 1 1 1, 1 1 2, 1 1 1 1, 1 1 2]
-               [0 0 4 4, 5 5 4, 3 3 2 2, 1 1 0]))
-
 ;; Utils
 (def zip (partial map vector))
 
@@ -81,6 +74,7 @@
 
 (defn transpose [matrix]
   (apply map vector matrix))
+
 ;; Preprocessing functions
 (defn bars
   "Returns the phrase divided up in bars. Each bar is 4 in duration."
@@ -140,7 +134,7 @@
       [(secondo p2 p1)]    ; (< prev next)
       [(secondo p1 p2)]))) ; (> prev next)
 
-(defn passing-noteo "t2 is a passing tone"
+(defn passing-noteo
   [note]
   (fresh [p1 p2 p3]
     (fd/in p1 p2 p3 domain)
@@ -149,7 +143,7 @@
       [(secondo p1 p2) (secondo p2 p3)]    ; (< prev next)
       [(secondo p3 p2) (secondo p2 p1)]))) ; (> prev next)
 
-;; chord contraints
+;; Chord contraints
 (defne triado [chord]
   ([[a b c]] (thirdo a b) (fiftho a c)))
 
@@ -174,78 +168,60 @@
   (everyg #(legal-noteo % chord) bar))
 
 ;;;;;;;;;;;;;
+(def horch   (phrase
+              [1 1 1 1, 1 1 2, 1 1 2, 1 1 2]
+              [0 1 2 3, 4 5 4, 3 1 6, 4 2 7])) ; `Horch was kommt von draussen rein' same as in strasheela example
+(def twinkle (phrase
+               [1 1 1 1, 1 1 2, 1 1 1 1, 1 1 2]
+               [0 0 4 4, 5 5 4, 3 3 2 2, 1 1 0]))
+
 (def melody (add-neighbours horch))
 (def mel-bars (bars melody))
 
-(comment
-  (let [chords (lvars 4)
-        [chords] (run 1 [q]
-          (== q chords)
-          (== (first chords) (last chords))
-          (everyg triado          ; #(conde [(triado %)] [(== % [4 6 0 2])])
-                  chords)
-          (everyg accompanyo (map vector mel-bars chords)))]
-    chords)
+(def find-chords-example
+  (let [chords (lvars 4)]
+    (run 10 [q]
+      (== q chords)
+      (== (first chords) (last chords))
+      (everyg triado chords)
+      (everyg accompanyo (zip mel-bars chords)))))
 
-    (let [chords (lvars 4)
-          chords (run 10 [q]
-                   (== q chords)
-                   (== (first chords) (last chords))
-                   (everyg triado          ; #(conde [(triado %)] [(== % [4 6 0 2])])
-                           chords)
-                   (everyg find-chordeo (map vector mel-bars chords)))]
-       chords)
+(def find-melody-example
+  (let [chords [[0 2 4] [3 5 7] [4 6 8] [3 5 7]
+                [0 2 4] [4 6 8] [3 5 7] [0 2 4]]
+        lmelody (lvars (+ 4 8 3 3, 4 8 3 3))
+        melody (add-neighbours
+                (phrase
+                 (concat [1 1 1 1] (repeat 8 1/2) [1 1 2] [1 1 2]
+                         [1 1 1 1] (repeat 8 1/2) [1 1 2] [1 1 2])
+                 lmelody))
+        mel-bars (bars melody)]
+    (run 10 [c m]
+      (== c chords) (== m melody)
+      (== (first lmelody) 0)                ; start with the tonic
+      (== (last lmelody) 0)                 ; end with the tonic
+      (everyg #(fd/in % domain) lmelody)    ; constrain the pitches
+      (everyg #(fd/distinct (map :pitch %)) ; make the melody more interesting by
+              mel-bars)                     ; making notes within a bar distinct
+      (everyg accompanyo (zip mel-bars chords)) ; harmonize melody with chords
+      )))
 
-)
+;; Playback fns
+(defn add-triads [triads melody]
+  (let [[i iii v] (map #(->> (phrase (repeat 4) %)
+                              (where :part (is :bass)))
+                       (transpose triads))]
+    (->> melody (with i) (with iii) (with v))))
 
+(defn play-example [[chords melody] & {:keys [bpms scale]
+                                       :or {bpms 120, scale (comp C major)}}]
+  (let [speed (bpm bpms)]
+    (->> melody
+         (where :part (is :leader))
+         (add-triads chords)
+         (where :time speed)
+         (where :duration speed)
+         (where :pitch scale)
+         (play))))
 
-
-
-
-
-(comment (let []
-           (->> (phrase (repeat 1) pitches)
-                (where :part (is :leader))
-                (where :time speed)
-                (where :duration speed)
-                (where :pitch (comp C major))
-                (play))))
-
-
-(def chordprogressions '(([0 2 4] [2 4 6] [6 1 3] [0 2 4]) ;0
-                        ([0 2 4] [0 2 4] [6 1 3] [0 2 4])  ;1
-                        ([0 2 4] [1 3 5] [6 1 3] [0 2 4])  ;2
-                        ([0 2 4] [2 4 13] [6 1 3] [0 2 4]) ;3
-                        ([0 2 4] [3 5 14] [6 1 3] [0 2 4]) ;4
-                        ([0 2 4] [4 6 1] [6 1 3] [0 2 4])  ;5
-                        ([0 2 4] [3 5 0] [6 1 3] [0 2 4])  ;6
-                        ([0 2 4] [4 6 8] [6 1 3] [0 2 4])  ;7
-                        ([0 2 4] [3 5 7] [6 1 3] [0 2 4])  ;8
-                        ([0 2 4] [0 9 4] [6 1 3] [0 2 4])));9
-
-
-(let [speed (bpm 120)
-      [as bs cs] (map #(phrase (repeat 4) %)
-                      (transpose (nth chordprogressions 0)))
-      i   (->> as (where :part (is :bass)))
-      iii (->> bs (where :part (is :bass)))
-      v  (->> cs (where :part (is :bass)))]
-  (->> melody
-       (where :part (is :leader))
-       (with i)
-       (with iii)
-       (with v)
-       (where :time speed)
-       (where :duration speed)
-       (where :pitch (comp C major))
-       (play)))
-
-(comment
-    (run 5 [t c]
-      (== c [0 2 4])
-      (passing-noteo t)
-      (fresh [a b c]
-        (== t {:pitch 5 :prev {:pitch a} :next {:pitch b}})))
-
-
-  )
+(play-example (first find-melody-example3))
