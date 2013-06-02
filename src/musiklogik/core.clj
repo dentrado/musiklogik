@@ -151,20 +151,22 @@
   (everyg #(legal-noteo % chord) bar))
 
 ;;;;;;;;;;;;;
-(def horch   (phrase
-              [1 1 1 1, 1 1 2, 1 1 2, 1 1 2]
-              [0 1 2 3, 4 5 4, 3 1 6, 4 2 7])) ; `Horch was kommt von draussen rein' same as in strasheela example
 (def twinkle (phrase
                [1 1 1 1, 1 1 2, 1 1 1 1, 1 1 2]
                [0 0 4 4, 5 5 4, 3 3 2 2, 1 1 0]))
+
+(def horch   (phrase ; `Horch was kommt von draussen rein' same as in strasheela example
+              [1 1 1 1, 1 1 2, 1 1 2, 1 1 2]
+              [0 1 2 3, 4 5 4, 3 1 6, 4 2 7]))
 
 (def melody (add-neighbours horch))
 (def mel-bars (bars melody))
 
 (def find-chords-example
   (let [chords (lvars 4)]
-    (run 10 [q]
-      (== q chords)
+    (run 4 [c m]
+      (== c chords)
+      (== m melody)
       (== (first chords) (last chords))
       (everyg triado chords)
       (everyg accompanyo (zip mel-bars chords)))))
@@ -179,7 +181,7 @@
                          [1 1 1 1] (repeat 8 1/2) [1 1 2] [1 1 2])
                  lmelody))
         mel-bars (bars melody)]
-    (run 10 [c m]
+    (run 1 [c m]
       (== c chords) (== m melody)
       (== (first lmelody) 0)                ; start with the tonic
       (== (last lmelody) 0)                 ; end with the tonic
