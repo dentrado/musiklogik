@@ -198,8 +198,9 @@
                        (transpose triads))]
     (->> melody (with i) (with iii) (with v))))
 
-(defn play-example [[chords melody] & {:keys [bpms scale]
-                                       :or {bpms 120, scale (comp C major)}}]
+(defn play-example
+  [[chords melody] & {:keys [bpms scale]
+                      :or {bpms 120, scale (comp C major)}}]
   (let [speed (bpm bpms)]
     (->> melody
          (where :part (is :leader))
@@ -209,4 +210,37 @@
          (where :pitch scale)
          (play))))
 
-(play-example (first find-melody-example3))
+(defn play-melody
+  [melody & {:keys [bpms scale]
+             :or {bpms 120, scale (comp C major)}}]
+  (let [speed (bpm bpms)]
+    (->> melody
+         (where :part (is :leader))
+         (where :time speed)
+         (where :duration speed)
+         (where :pitch scale)
+         (play))))
+
+(defn leipzig->abc
+  "Converts a sequence of leipzig note-maps to abc-notation (in C-major)."
+  [melody]
+  (let [space (constantly \space)
+        get-pitch #(get [\C \D \E \F \G \A \B \c \d \e \f \g \a \b "c'" "d'" "e'" "f'" "g'" "a'" "b'"]
+                        (:pitch %) (str "hej" % "da"))
+        ->abc #(apply str (flatten (map (juxt get-pitch :duration space) %)))]
+    (apply str (interpose "| " (map ->abc (bars melody))))))
+
+
+(comment
+  (leipzig->abc (second (time (first find-chords-example))))
+
+  (play-melody melody)
+  (play-example (first find-chords-example))
+
+  (play-chords )
+  (play-example (first find-melody-example))
+
+  (([0 2 4] [2 4 6] [6 1 3] [0 2 4])
+   ([0 2 4] [0 2 4] [6 1 3] [0 2 4])
+   ([0 2 4] [1 3 5] [6 1 3] [0 2 4])
+   ([0 2 4] [2 4 13] [6 1 3] [0 2 4])))
