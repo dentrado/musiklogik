@@ -150,47 +150,6 @@
 (defn accompanyo [[bar chord]]
   (everyg #(legal-noteo % chord) bar))
 
-;;;;;;;;;;;;;
-(def twinkle (phrase
-               [1 1 1 1, 1 1 2, 1 1 1 1, 1 1 2]
-               [0 0 4 4, 5 5 4, 3 3 2 2, 1 1 0]))
-
-(def horch   (phrase ; `Horch was kommt von draussen rein' same as in strasheela example
-              [1 1 1 1, 1 1 2, 1 1 2, 1 1 2]
-              [0 1 2 3, 4 5 4, 3 1 6, 4 2 7]))
-
-(def melody (add-neighbours horch))
-(def mel-bars (bars melody))
-
-(def find-chords-example
-  (let [chords (lvars 4)]
-    (run 4 [c m]
-      (== c chords)
-      (== m melody)
-      (== (first chords) (last chords))
-      (everyg triado chords)
-      (everyg accompanyo (zip mel-bars chords)))))
-
-(def find-melody-example
-  (let [chords [[0 2 4] [3 5 7] [4 6 8] [3 5 7]
-                [0 2 4] [4 6 8] [3 5 7] [0 2 4]]
-        lmelody (lvars (+ 4 8 3 3, 4 8 3 3))
-        melody (add-neighbours
-                (phrase
-                 (concat [1 1 1 1] (repeat 8 1/2) [1 1 2] [1 1 2]
-                         [1 1 1 1] (repeat 8 1/2) [1 1 2] [1 1 2])
-                 lmelody))
-        mel-bars (bars melody)]
-    (run 1 [c m]
-      (== c chords) (== m melody)
-      (== (first lmelody) 0)                ; start with the tonic
-      (== (last lmelody) 0)                 ; end with the tonic
-      (everyg #(fd/in % domain) lmelody)    ; constrain the pitches
-      (everyg #(fd/distinct (map :pitch %)) ; make the melody more interesting by
-              mel-bars)                     ; making notes within a bar distinct
-      (everyg accompanyo (zip mel-bars chords)) ; harmonize melody with chords
-      )))
-
 ;; Playback fns
 (defn add-triads [triads melody]
   (let [[i iii v] (map #(->> (phrase (repeat 4) %)
@@ -198,28 +157,35 @@
                        (transpose triads))]
     (->> melody (with i) (with iii) (with v))))
 
-(defn play-example
-  [[chords melody] & {:keys [bpms scale]
-                      :or {bpms 120, scale (comp C major)}}]
-  (let [speed (bpm bpms)]
-    (->> melody
-         (where :part (is :leader))
-         (add-triads chords)
-         (where :time speed)
-         (where :duration speed)
-         (where :pitch scale)
-         (play))))
-
-(defn play-melody
+(defn play*
   [melody & {:keys [bpms scale]
              :or {bpms 120, scale (comp C major)}}]
   (let [speed (bpm bpms)]
     (->> melody
-         (where :part (is :leader))
          (where :time speed)
          (where :duration speed)
          (where :pitch scale)
-         (play))))
+         play)))
+
+(defn play-melody
+  [melody & {:keys [bpms scale] :or {bpms 120, scale (comp C major)}}]
+  (play* (->> melody (where :part (is :leader)))
+         :bpms bpms :scale scale))
+
+(defn play-chords
+  [chords & {:keys [bpms scale] :or {bpms 120, scale (comp C major)}}]
+  (play* (add-triads chords [])
+         :bpms bpms :scale scale))
+
+(defn play-example
+  [[chords melody] & {:keys [bpms scale]
+                      :or {bpms 120, scale (comp C major)}}]
+  (play* (->> melody
+              (where :part (is :leader))
+              (add-triads chords))
+         :bpms bpms :scale scale))
+
+
 
 (defn leipzig->abc
   "Converts a sequence of leipzig note-maps to abc-notation (in C-major)."
@@ -229,18 +195,3 @@
                         (:pitch %) (str "hej" % "da"))
         ->abc #(apply str (flatten (map (juxt get-pitch :duration space) %)))]
     (apply str (interpose "| " (map ->abc (bars melody))))))
-
-
-(comment
-  (leipzig->abc (second (time (first find-chords-example))))
-
-  (play-melody melody)
-  (play-example (first find-chords-example))
-
-  (play-chords )
-  (play-example (first find-melody-example))
-
-  (([0 2 4] [2 4 6] [6 1 3] [0 2 4])
-   ([0 2 4] [0 2 4] [6 1 3] [0 2 4])
-   ([0 2 4] [1 3 5] [6 1 3] [0 2 4])
-   ([0 2 4] [2 4 13] [6 1 3] [0 2 4])))
