@@ -10,9 +10,9 @@ Inspired by the strasheela example
 
 ## Todo
 
-Tests
-Performance improvements
-Lots of things
+* Tests
+* Performance improvements
+* Lots of things
 
 ## Usage
 
