@@ -5,7 +5,8 @@
         [leipzig.melody]
         [leipzig.scale]
         [leipzig.live])
-  (:require [clojure.core.logic.fd :as fd]))
+  (:require [overtone.live :as overtone]
+            [clojure.core.logic.fd :as fd]))
 
 (def twinkle (phrase
                [1 1 1 1, 1 1 2, 1 1 1 1, 1 1 2]
@@ -49,6 +50,7 @@
 
 
 (comment
+
   (run 10 [pitch chord]
     (triado chord)
     (in-chordeo {:pitch pitch} chord))
@@ -59,11 +61,22 @@
                     :next {:pitch p3}}))
 
   (play-melody melody)
+
   (play-example (first find-chords-example))
 
-  (play-chords [[0 2 4] [3 5 7] [4 6 8] [3 5 7] [0 2 4] [4 6 8] [3 5 7] [0 2 4]])
-  (play-example (first find-melody-example))
+  (play-example (first find-chords-example)
+                :scale (comp F minor))
+
+  (play-chords [[0 2 4] [3 5 7] [4 6 8] [3 5 7] [0 2 4] [4 6 8] [3 5 7] [0 2 4]]
+               :bpms 200)
+
+  ;(play-example (first find-melody-example))
+
   (play-example precomputed)
+
+  (play-example precomputed
+                :bpms 200
+                :scale (comp A minor))
 
   )
 
